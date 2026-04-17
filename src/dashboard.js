@@ -30,7 +30,7 @@ let dayRows   = [];
 let swingRows = [];
 
 const S = {
-  main:  { f: 'all', q: '', pg: 1, sc: 'Open_Date', sd: -1, rows: [], filtered: [] },
+  main:  { f: 'all', q: '', pg: 1, sc: 'Open_Date', sd: -1, rows: [], filtered: [], dateFrom: null, dateTo: null },
   day:   { f: 'all', q: '', pg: 1, sc: 'Open_Date', sd: -1, rows: [], filtered: [] },
   swing: { f: 'all', q: '', pg: 1, sc: 'Open_Date', sd: -1, rows: [], filtered: [] },
 };
@@ -232,10 +232,16 @@ function buildHeaders() {
 // ── FILTER + SORT + RENDER ────────────────────────────────────
 function applyFilter(tab) {
   const s = S[tab];
-  let rows = s.rows.filter(r =>
-    (s.f === 'all' || r.Status === s.f) &&
-    (!s.q || (r.Symbol || '').toLowerCase().includes(s.q.toLowerCase()))
-  );
+  let rows = s.rows.filter(r => {
+    if (s.f !== 'all' && r.Status !== s.f) return false;
+    if (s.q && !(r.Symbol || '').toLowerCase().includes(s.q.toLowerCase())) return false;
+    // Date filter (main tab only) — open positions always pass through
+    if (tab === 'main' && (s.dateFrom || s.dateTo) && r.Close_Date) {
+      if (s.dateFrom && r.Close_Date < s.dateFrom) return false;
+      if (s.dateTo   && r.Close_Date > s.dateTo)   return false;
+    }
+    return true;
+  });
   rows.sort((a, b) => {
     let va = a[s.sc], vb = b[s.sc];
     if (va == null) return 1;
@@ -246,6 +252,13 @@ function applyFilter(tab) {
   });
   s.filtered = rows;
   s.pg = 1;
+
+  // Re-render KPIs, charts, symbol cards with filtered data
+  if (tab === 'main') {
+    renderKPIs('main', rows, 6);
+    renderSymbolCards('main', rows, 'g');
+    renderMainCharts(rows);
+  }
   renderTable(tab);
 }
 
@@ -360,3 +373,53 @@ function moneyClass(v) {
 }
 
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── DATE FILTER (main tab only) ───────────────────────────────
+function onDateChange() {
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+  S.main.dateFrom = from ? new Date(from + 'T00:00:00') : null;
+  S.main.dateTo   = to   ? new Date(to   + 'T23:59:59') : null;
+  // deactivate presets when typing manually
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  applyFilter('main');
+}
+
+function applyPreset(preset) {
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let from = null, to = null;
+
+  if (preset === 'week') {
+    from = new Date(today); from.setDate(today.getDate() - today.getDay());
+    to   = new Date(from);  to.setDate(from.getDate() + 6);
+  } else if (preset === 'month') {
+    from = new Date(now.getFullYear(), now.getMonth(), 1);
+    to   = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (preset === 'lastmonth') {
+    from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    to   = new Date(now.getFullYear(), now.getMonth(), 0);
+  } else if (preset === 'ytd') {
+    from = new Date(now.getFullYear(), 0, 1);
+    to   = today;
+  }
+
+  S.main.dateFrom = from;
+  S.main.dateTo   = to ? new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59) : null;
+  document.getElementById('dateFrom').value = from ? from.toISOString().slice(0,10) : '';
+  document.getElementById('dateTo').value   = to   ? to.toISOString().slice(0,10)   : '';
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === preset));
+  applyFilter('main');
+}
+
+function clearDate() {
+  S.main.dateFrom = S.main.dateTo = null;
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value   = '';
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.toggle('active', b.dataset.preset === 'all'));
+  applyFilter('main');
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});

@@ -59,6 +59,21 @@
 
     <div class="kpi-strip kpi-strip-6 fu" id="kpiMain"></div>
 
+    <div class="date-bar">
+      <span class="date-bar-label">Close Date</span>
+      <input type="date" class="date-input" id="dateFrom" onchange="onDateChange()"/>
+      <span class="date-sep">→</span>
+      <input type="date" class="date-input" id="dateTo" onchange="onDateChange()"/>
+      <div class="date-presets">
+        <button class="preset-btn" data-preset="week">Week</button>
+        <button class="preset-btn" data-preset="month">Month</button>
+        <button class="preset-btn" data-preset="lastmonth">Last Month</button>
+        <button class="preset-btn" data-preset="ytd">YTD</button>
+        <button class="preset-btn active" data-preset="all">All</button>
+      </div>
+      <button class="date-clear" onclick="clearDate()">✕ Clear</button>
+    </div>
+
     <div class="section-header">
       <div class="section-title">Analytics</div>
       <div class="section-line"></div>

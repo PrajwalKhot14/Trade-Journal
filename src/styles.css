@@ -571,3 +571,16 @@ td.mz  { color: var(--text2); }
 .cal-sum-item span.pos  { color: var(--green); }
 .cal-sum-item span.neg  { color: var(--red); }
 .cal-sum-item span.blue { color: var(--accent); }
+
+/* ── DATE FILTER BAR ── */
+.date-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg2);border:1px solid var(--border);margin-bottom:24px;flex-wrap:wrap;}
+.date-bar-label{font-size:10px;letter-spacing:0.12em;color:var(--text3);text-transform:uppercase;white-space:nowrap;}
+.date-input{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 10px;outline:none;transition:border-color 0.2s;cursor:pointer;color-scheme:dark;}
+.date-input:focus{border-color:var(--accent);}
+.date-sep{color:var(--text3);font-size:11px;}
+.date-presets{display:flex;gap:6px;}
+.preset-btn{padding:4px 12px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.06em;background:transparent;border:1px solid var(--border2);color:var(--text3);cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.preset-btn:hover{border-color:var(--text2);color:var(--text2);}
+.preset-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,212,255,0.06);}
+.date-clear{margin-left:auto;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;background:transparent;border:1px solid var(--border2);color:var(--text3);cursor:pointer;transition:all 0.15s;text-transform:uppercase;}
+.date-clear:hover{border-color:var(--red);color:var(--red);}

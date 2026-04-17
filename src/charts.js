@@ -1,0 +1,159 @@
+// ============================================================
+//  charts.js — Chart.js wrappers for all dashboard charts
+// ============================================================
+
+const CH = {}; // active Chart instances keyed by id
+
+// ── DESTROY ──────────────────────────────────────────────────
+function destroyCharts(...ids) {
+  ids.forEach(id => {
+    if (CH[id]) { CH[id].destroy(); delete CH[id]; }
+  });
+}
+
+// ── RENDER PER TAB ───────────────────────────────────────────
+function renderMainCharts(allRows) {
+  destroyCharts('pM', 'wM', 'sM');
+  CH.pM = barChart('cPnlMain',   pnlBySymbol(allRows.filter(r => r.Status !== 'Open')), true,  '#00d4ff');
+  CH.wM = barChart('cWrMain',    winRateBySymbol(allRows),                               false, '#00d4ff', 100);
+  const sc = { Closed: 0, Open: 0, Partial: 0 };
+  allRows.forEach(r => { if (sc[r.Status] !== undefined) sc[r.Status]++; });
+  CH.sM = donutChart(
+    'cStatusMain',
+    ['Closed', 'Open', 'Partial'],
+    [sc.Closed, sc.Open, sc.Partial],
+    ['rgba(0,230,118,0.7)', 'rgba(255,214,10,0.7)', 'rgba(255,107,53,0.7)'],
+    ['#00e676', '#ffd60a', '#ff6b35'],
+  );
+}
+
+function renderDayCharts(dayRows) {
+  destroyCharts('pD', 'wD');
+  CH.pD = barChart('cPnlDay', pnlBySymbol(dayRows.filter(r => r.Status !== 'Open')), true,  '#ff6b35');
+  CH.wD = barChart('cWrDay',  winRateBySymbol(dayRows),                               false, '#ff6b35', 100);
+}
+
+function renderSwingCharts(swingRows) {
+  destroyCharts('pS', 'hS');
+  CH.pS = barChart('cPnlSwing', pnlBySymbol(swingRows.filter(r => r.Status !== 'Open')), true, '#c084fc');
+
+  // Avg hold time by symbol (days)
+  const holdSum = {}, holdCount = {};
+  swingRows.filter(r => r._h !== null).forEach(r => {
+    holdSum[r.Symbol]   = (holdSum[r.Symbol]   || 0) + r._h / 24;
+    holdCount[r.Symbol] = (holdCount[r.Symbol] || 0) + 1;
+  });
+  const syms = Object.keys(holdSum).sort();
+  CH.hS = new Chart(document.getElementById('cHoldSwing'), {
+    type: 'bar',
+    data: {
+      labels: syms,
+      datasets: [{
+        data: syms.map(s => (holdSum[s] / holdCount[s]).toFixed(1)),
+        backgroundColor: 'rgba(192,132,252,0.5)',
+        borderColor: '#c084fc',
+        borderWidth: 1,
+      }],
+    },
+    options: chartOptions('d', false, null),
+  });
+}
+
+// ── DATA AGGREGATORS ─────────────────────────────────────────
+function pnlBySymbol(rows) {
+  const m = {};
+  rows.forEach(r => { m[r.Symbol] = (m[r.Symbol] || 0) + (r.PnL || 0); });
+  const syms = Object.keys(m).sort((a, b) => m[b] - m[a]);
+  return { labels: syms, values: syms.map(k => m[k]) };
+}
+
+function winRateBySymbol(rows) {
+  const wins = {}, total = {};
+  rows.filter(r => r.Status === 'Closed').forEach(r => {
+    total[r.Symbol] = (total[r.Symbol] || 0) + 1;
+    if ((r.PnL || 0) > 0) wins[r.Symbol] = (wins[r.Symbol] || 0) + 1;
+  });
+  const syms = Object.keys(total);
+  return { labels: syms, values: syms.map(k => (wins[k] || 0) / total[k] * 100) };
+}
+
+// ── CHART FACTORIES ──────────────────────────────────────────
+function barChart(id, data, isMoney, accentColor, maxY = null) {
+  return new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        data: data.values,
+        backgroundColor: data.values.map(v =>
+          isMoney ? (v >= 0 ? 'rgba(0,230,118,0.65)' : 'rgba(255,61,90,0.65)') : accentColor + '99'
+        ),
+        borderColor: data.values.map(v =>
+          isMoney ? (v >= 0 ? '#00e676' : '#ff3d5a') : accentColor
+        ),
+        borderWidth: 1,
+      }],
+    },
+    options: chartOptions(isMoney ? '$' : '%', isMoney, maxY),
+  });
+}
+
+function donutChart(id, labels, data, backgroundColors, borderColors) {
+  return new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: backgroundColors, borderColor: borderColors, borderWidth: 1 }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          labels: { color: '#7a9bb5', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 12 },
+        },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } },
+      },
+    },
+  });
+}
+
+function chartOptions(suffix, isMoney, maxY) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => isMoney
+            ? ` ${formatMoney(ctx.parsed.y)}`
+            : ` ${parseFloat(ctx.parsed.y).toFixed(1)}${suffix}`,
+        },
+        backgroundColor: '#0d1117',
+        borderColor:      '#1e2d3d',
+        borderWidth:      1,
+        titleColor:       '#7a9bb5',
+        bodyColor:        '#e8f4f8',
+        titleFont: { family: 'JetBrains Mono' },
+        bodyFont:  { family: 'JetBrains Mono' },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: '#4a6a80', font: { family: 'JetBrains Mono', size: 10 } },
+        grid:  { color: '#1e2d3d' },
+      },
+      y: {
+        ticks: {
+          color: '#4a6a80',
+          font:  { family: 'JetBrains Mono', size: 10 },
+          callback: v => isMoney ? formatMoney(v) : v + suffix,
+        },
+        grid: { color: '#1e2d3d' },
+        ...(maxY ? { max: maxY } : {}),
+      },
+    },
+  };
+}

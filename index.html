@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trade Journal</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="src/styles.css"/>
+
+  <!-- Third-party libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── TOPBAR ──────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="logo">Trade Journal</div>
+  <div class="topbar-right">
+    <div class="clock" id="clock"></div>
+    <label class="upload-btn" for="fileInput">↑ Load CSV / Excel</label>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls"/>
+  </div>
+</div>
+
+<!-- ── TAB NAV ─────────────────────────────────────────────── -->
+<div class="tab-nav" id="tabNav" style="display:none">
+  <button class="tab-btn active" data-tab="main">
+    📊 Overview <span class="tab-count" id="cntMain">0</span>
+  </button>
+  <button class="tab-btn tab-day" data-tab="day">
+    ⚡ Day Trades <span class="tab-count" id="cntDay">0</span>
+  </button>
+  <button class="tab-btn tab-swing" data-tab="swing">
+    📈 Swing Trades <span class="tab-count" id="cntSwing">0</span>
+  </button>
+</div>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────── -->
+<div class="main">
+
+  <!-- Empty / drop state -->
+  <div class="empty-state" id="emptyState">
+    <div class="big-icon">📊</div>
+    <h2>No data loaded</h2>
+    <p>Drop your raw ThinkorSwim CSV or Excel export — grouping happens automatically</p>
+    <label class="drop-zone" for="fileInput" id="dropZone">
+      Drop file here or click to browse
+    </label>
+    <div class="load-status" id="loadStatus"></div>
+  </div>
+
+  <!-- ══ OVERVIEW TAB ══════════════════════════════════════ -->
+  <div class="tab-panel active" id="panel-main">
+
+    <div class="kpi-strip kpi-strip-6 fu" id="kpiMain"></div>
+
+    <div class="section-header">
+      <div class="section-title">Analytics</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="charts-row cols-3 fu">
+      <div class="chart-card">
+        <div class="chart-card-title">P&amp;L by Symbol</div>
+        <div class="chart-container"><canvas id="cPnlMain"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Win Rate by Symbol</div>
+        <div class="chart-container"><canvas id="cWrMain"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Position Status Mix</div>
+        <div class="chart-container"><canvas id="cStatusMain"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">By Symbol</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="symbol-grid fu" id="sgMain"></div>
+
+    <div class="section-header">
+      <div class="section-title">P&amp;L Calendar</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="cal-wrap fu">
+      <div class="cal-card">
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calMove(-1)">&#8249; Prev</button>
+          <div class="cal-month" id="calMonthLabel"></div>
+          <button class="cal-nav-btn" onclick="calMove(1)">Next &#8250;</button>
+        </div>
+        <div class="cal-summary" id="calSummary"></div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="cal-detail" id="calDetail">
+        <div class="cal-hint">&#8592; Click a day with trades to see details</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">All Positions</div>
+      <div class="section-line"></div>
+      <div class="section-badge" id="bdgMain">0 rows</div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-tf="main" data-f="all">All</button>
+      <button class="filter-btn" data-tf="main" data-f="Closed">Closed</button>
+      <button class="filter-btn" data-tf="main" data-f="Open">Open</button>
+      <button class="filter-btn" data-tf="main" data-f="Partial">Partial</button>
+      <input class="search-input" id="srchMain" placeholder="Search symbol..."/>
+    </div>
+    <div class="table-wrap fu">
+      <table><thead><tr id="thMain"></tr></thead><tbody id="tbMain"></tbody></table>
+    </div>
+    <div class="pagination">
+      <div id="piMain"></div>
+      <div class="page-btns" id="pbMain"></div>
+    </div>
+
+    <div class="footer">
+      <div><span class="ld"></span>Trade Journal — raw CSV in, grouped dashboard out. Local only.</div>
+      <div id="footMeta"></div>
+    </div>
+  </div>
+
+  <!-- ══ DAY TRADES TAB ════════════════════════════════════ -->
+  <div class="tab-panel" id="panel-day">
+
+    <div class="kpi-strip kpi-strip-4 fu" id="kpiDay"></div>
+
+    <div class="section-header">
+      <div class="section-title">Day Trade Analytics</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="charts-row cols-2 fu">
+      <div class="chart-card">
+        <div class="chart-card-title or">P&amp;L by Symbol</div>
+        <div class="chart-container"><canvas id="cPnlDay"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title or">Win Rate by Symbol</div>
+        <div class="chart-container"><canvas id="cWrDay"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">By Symbol</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="symbol-grid fu" id="sgDay"></div>
+
+    <div class="section-header">
+      <div class="section-title">Day Trade Positions</div>
+      <div class="section-line"></div>
+      <div class="section-badge" id="bdgDay">0 rows</div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-tf="day" data-f="all">All</button>
+      <button class="filter-btn" data-tf="day" data-f="Closed">Closed</button>
+      <button class="filter-btn" data-tf="day" data-f="Open">Open</button>
+      <button class="filter-btn" data-tf="day" data-f="Partial">Partial</button>
+      <input class="search-input" id="srchDay" placeholder="Search symbol..."/>
+    </div>
+    <div class="table-wrap fu">
+      <table><thead><tr id="thDay"></tr></thead><tbody id="tbDay"></tbody></table>
+    </div>
+    <div class="pagination">
+      <div id="piDay"></div>
+      <div class="page-btns" id="pbDay"></div>
+    </div>
+  </div>
+
+  <!-- ══ SWING TRADES TAB ══════════════════════════════════ -->
+  <div class="tab-panel" id="panel-swing">
+
+    <div class="kpi-strip kpi-strip-4 fu" id="kpiSwing"></div>
+
+    <div class="section-header">
+      <div class="section-title">Swing Trade Analytics</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="charts-row cols-2 fu">
+      <div class="chart-card">
+        <div class="chart-card-title pu">P&amp;L by Symbol</div>
+        <div class="chart-container"><canvas id="cPnlSwing"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title pu">Avg Hold Time (days) by Symbol</div>
+        <div class="chart-container"><canvas id="cHoldSwing"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">By Symbol</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="symbol-grid fu" id="sgSwing"></div>
+
+    <div class="section-header">
+      <div class="section-title">Swing Positions</div>
+      <div class="section-line"></div>
+      <div class="section-badge" id="bdgSwing">0 rows</div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" data-tf="swing" data-f="all">All</button>
+      <button class="filter-btn" data-tf="swing" data-f="Closed">Closed</button>
+      <button class="filter-btn" data-tf="swing" data-f="Open">Open</button>
+      <button class="filter-btn" data-tf="swing" data-f="Partial">Partial</button>
+      <input class="search-input" id="srchSwing" placeholder="Search symbol..."/>
+    </div>
+    <div class="table-wrap fu">
+      <table><thead><tr id="thSwing"></tr></thead><tbody id="tbSwing"></tbody></table>
+    </div>
+    <div class="pagination">
+      <div id="piSwing"></div>
+      <div class="page-btns" id="pbSwing"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ── JS modules (load order matters) ─────────────────────── -->
+<script src="src/data.js"></script>
+<script src="src/charts.js"></script>
+<script src="src/calendar.js"></script>
+<script src="src/dashboard.js"></script>
+
+</body>
+</html>

@@ -111,7 +111,7 @@ function initDashboard() {
   S.swing.rows = swingRows;
 
   buildHeaders();
-  renderKPIs('main',  allRows,   6);
+  renderKPIs('main',  allRows,   5);
   renderKPIs('day',   dayRows,   4);
   renderKPIs('swing', swingRows, 4);
   renderMainCharts(allRows);
@@ -146,14 +146,12 @@ function renderKPIs(tab, rows, count) {
     .reduce((s, r, _, a) => s + r._h / a.length, 0);
 
   let items;
-  if (count === 6) {
-    const deployed = rows.reduce((s, r) => s + Math.abs(r.Open_Cost || 0), 0);
+  if (count === 5) {
     items = [
       { l: 'Total Realized P&L', v: formatMoney(totalPnL), c: totalPnL >= 0 ? 'green' : 'red', s: `${closed.length + partial.length} trades` },
       { l: 'Win Rate',           v: wr.toFixed(1) + '%',   c: wr >= 50 ? 'green' : 'red',       s: `${wins}W / ${closed.length - wins}L closed` },
       { l: 'Open Positions',     v: open.length + partial.length, c: 'blue',                     s: `${open.length} open · ${partial.length} partial` },
-      { l: 'Capital at Risk',    v: formatMoney(atRisk),   c: 'warn',                            s: 'cost basis remaining' },
-      { l: 'Total Deployed',     v: formatMoney(deployed), c: '',                                s: `${rows.length} positions` },
+      { l: 'Capital at Risk',    v: formatMoney(atRisk),   c: 'warn',                            s: 'cost basis of open positions' },
       { l: 'Avg P&L / Trade',    v: formatMoney(avgPnL),   c: avgPnL >= 0 ? 'green' : 'red',    s: 'closed only' },
     ];
   } else {
@@ -202,7 +200,7 @@ function renderSymbolCards(tab, rows, barClass) {
         <div class="sc-row"><span>Win Rate</span><span>${wr.toFixed(0)}%</span></div>
         ${holdStr}
         <div class="sc-row"><span>Basis Left</span><span>${formatMoney(basis)}</span></div>
-        <div class="sc-pnl ${pnl >= 0 ? 'mp' : 'mn'}">${formatMoney(pnl)}</div>
+        <div class="sc-pnl ${pnl > 0 ? 'mp' : pnl < 0 ? 'mn' : ''}">${formatMoney(pnl)}</div>
         <div class="sc-bar"><div class="sc-bar-fill ${barClass}" style="width:${wr}%"></div></div>
       </div>`;
   }).join('');
@@ -255,7 +253,7 @@ function applyFilter(tab) {
 
   // Re-render KPIs, charts, symbol cards with filtered data
   if (tab === 'main') {
-    renderKPIs('main', rows, 6);
+    renderKPIs('main', rows, 5);
     renderSymbolCards('main', rows, 'g');
     renderMainCharts(rows);
   }
@@ -373,6 +371,25 @@ function moneyClass(v) {
 }
 
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ── THEME TOGGLE ─────────────────────────────────────────────
+const themeToggle = document.getElementById('themeToggle');
+const savedTheme  = localStorage.getItem('theme');
+if (savedTheme === 'light') {
+  document.body.classList.add('light');
+  themeToggle.textContent = '🌙';
+}
+themeToggle.addEventListener('click', () => {
+  const isLight = document.body.classList.toggle('light');
+  themeToggle.textContent = isLight ? '🌙' : '☀';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  // Re-render charts so they pick up new CSS variable colors
+  if (allRows.length) {
+    renderMainCharts(S.main.filtered.length ? S.main.filtered : allRows);
+    renderDayCharts(S.day.filtered.length   ? S.day.filtered   : dayRows);
+    renderSwingCharts(S.swing.filtered.length ? S.swing.filtered : swingRows);
+  }
+});
 
 // ── DATE FILTER (main tab only) ───────────────────────────────
 function onDateChange() {

@@ -24,6 +24,7 @@
     <div class="clock" id="clock"></div>
     <label class="upload-btn" for="fileInput">↑ Load CSV / Excel</label>
     <input type="file" id="fileInput" accept=".csv,.xlsx,.xls"/>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">☀</button>
   </div>
 </div>
 
@@ -57,7 +58,7 @@
   <!-- ══ OVERVIEW TAB ══════════════════════════════════════ -->
   <div class="tab-panel active" id="panel-main">
 
-    <div class="kpi-strip kpi-strip-6 fu" id="kpiMain"></div>
+    <div class="kpi-strip kpi-strip-5 fu" id="kpiMain"></div>
 
     <div class="date-bar">
       <span class="date-bar-label">Close Date</span>
@@ -94,29 +95,27 @@
     </div>
 
     <div class="section-header">
-      <div class="section-title">By Symbol</div>
-      <div class="section-line"></div>
-    </div>
-    <div class="symbol-grid fu" id="sgMain"></div>
-
-    <div class="section-header">
       <div class="section-title">P&amp;L Calendar</div>
       <div class="section-line"></div>
     </div>
     <div class="cal-wrap fu">
-      <div class="cal-card">
-        <div class="cal-nav">
-          <button class="cal-nav-btn" onclick="calMove(-1)">&#8249; Prev</button>
+      <div class="cal-main">
+        <div class="cal-header">
+          <button class="cal-nav-btn" onclick="calMove(-1)">&#8249;</button>
           <div class="cal-month" id="calMonthLabel"></div>
-          <button class="cal-nav-btn" onclick="calMove(1)">Next &#8250;</button>
+          <button class="cal-nav-btn" onclick="calMove(1)">&#8250;</button>
+          <div class="cal-summary" id="calSummary"></div>
         </div>
-        <div class="cal-summary" id="calSummary"></div>
         <div class="cal-grid" id="calGrid"></div>
       </div>
-      <div class="cal-detail" id="calDetail">
-        <div class="cal-hint">&#8592; Click a day with trades to see details</div>
-      </div>
+      <div class="cal-detail" id="calDetail"></div>
     </div>
+
+    <div class="section-header">
+      <div class="section-title">By Symbol</div>
+      <div class="section-line"></div>
+    </div>
+    <div class="symbol-grid fu" id="sgMain"></div>
 
     <div class="section-header">
       <div class="section-title">All Positions</div>
@@ -245,6 +244,29 @@
 <script src="src/charts.js"></script>
 <script src="src/calendar.js"></script>
 <script src="src/dashboard.js"></script>
+
+<script>
+  // Auto-load latest CSV from data/ folder if running via serve.py
+  fetch('/latest-csv')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data) return;
+      setStatus(`Auto-loading ${data.file}...`);
+      return fetch('/' + data.file);
+    })
+    .then(r => r ? r.text() : null)
+    .then(text => {
+      if (!text) return;
+      const rawRows = parseCSV(text);
+      const cleaned = normalise(rawRows);
+      allRows   = groupTrades(cleaned);
+      dayRows   = allRows.filter(r => r._h !== null && r._h < 24);
+      swingRows = allRows.filter(r => r._h === null || r._h >= 24);
+      setStatus('');
+      initDashboard();
+    })
+    .catch(() => {}); // silently ignore if not running via serve.py
+</script>
 
 </body>
 </html>

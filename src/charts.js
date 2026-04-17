@@ -111,7 +111,7 @@ function donutChart(id, labels, data, backgroundColors, borderColors) {
       cutout: '65%',
       plugins: {
         legend: {
-          labels: { color: '#7a9bb5', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 12 },
+          labels: { color: cssVar('--text2'), font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 12 },
         },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}` } },
       },
@@ -119,7 +119,17 @@ function donutChart(id, labels, data, backgroundColors, borderColors) {
   });
 }
 
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function chartOptions(suffix, isMoney, maxY) {
+  const grid   = cssVar('--grid-line');
+  const tick   = cssVar('--tick-color');
+  const bg2    = cssVar('--bg2');
+  const border = cssVar('--border');
+  const text2  = cssVar('--text2');
+  const text   = cssVar('--text');
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -131,27 +141,27 @@ function chartOptions(suffix, isMoney, maxY) {
             ? ` ${formatMoney(ctx.parsed.y)}`
             : ` ${parseFloat(ctx.parsed.y).toFixed(1)}${suffix}`,
         },
-        backgroundColor: '#0d1117',
-        borderColor:      '#1e2d3d',
+        backgroundColor: bg2,
+        borderColor:      border,
         borderWidth:      1,
-        titleColor:       '#7a9bb5',
-        bodyColor:        '#e8f4f8',
+        titleColor:       text2,
+        bodyColor:        text,
         titleFont: { family: 'JetBrains Mono' },
         bodyFont:  { family: 'JetBrains Mono' },
       },
     },
     scales: {
       x: {
-        ticks: { color: '#4a6a80', font: { family: 'JetBrains Mono', size: 10 } },
-        grid:  { color: '#1e2d3d' },
+        ticks: { color: tick, font: { family: 'JetBrains Mono', size: 10 } },
+        grid:  { color: grid },
       },
       y: {
         ticks: {
-          color: '#4a6a80',
+          color: tick,
           font:  { family: 'JetBrains Mono', size: 10 },
           callback: v => isMoney ? formatMoney(v) : v + suffix,
         },
-        grid: { color: '#1e2d3d' },
+        grid: { color: grid },
         ...(maxY ? { max: maxY } : {}),
       },
     },

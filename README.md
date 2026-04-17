@@ -33,9 +33,8 @@ VS Code + Live Server (recommended)
 
 ## Supported input format
 The app handles the raw TOS export directly — no pre-formatting needed:
+
 Date, Action, Symbol, Description, Quantity, Price, Fees & Comm, Amount
-4/15/2026, Buy to Open, "MSFT 05/15/2026 440.00 C", ..., 1, $9.05, $0.66, ($905.66)
-4/15/2026, Sell to Close, "MSFT 05/15/2026 440.00 C", ..., 1, $12.40, $0.66, $1,239.34
 
 Non-trade rows (transfers, journal entries, money movement) are filtered out automatically.
 

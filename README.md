@@ -53,3 +53,12 @@ Overview tab also includes
 
 ## Sample data
 A sample_tos_export.csv is included covering day trades, swing trades, partial closes, open positions, and a non-trade row — useful for testing or a GitHub demo.
+
+<img width="1897" height="699" alt="image" src="https://github.com/user-attachments/assets/a61ecffe-8d9d-4683-88e7-70b619931574" />
+<img width="1900" height="698" alt="image" src="https://github.com/user-attachments/assets/cf53256d-8c54-4f31-9cad-82ef6906b340" />
+<img width="1891" height="933" alt="image" src="https://github.com/user-attachments/assets/5b498a34-c129-4d7c-b1b2-a12471a768d2" />
+<img width="1894" height="828" alt="image" src="https://github.com/user-attachments/assets/04198a4a-1331-4748-9a4d-8f505a4a2d36" />
+<img width="1888" height="836" alt="image" src="https://github.com/user-attachments/assets/01ba47c0-0a20-421c-8737-9c8064de5600" />
+
+
+
